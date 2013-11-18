@@ -1,0 +1,513 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+ <title>The Nolan Collection Explorer</title>
+	<script type="text/javascript" src="jquery110.min.js"></script>
+	<script src="lib/jquery.ba-hashchange.min.js" type="text/javascript"></script>
+	<link href="style/styles.css" media="screen" rel="stylesheet" type="text/css" />
+
+</head>
+<body>	
+
+<script type="text/javascript">
+	var collection = [];
+	var collectionMap = {}; // an associative array indexed by work ID
+	var tagdata = {}; // store our tag data
+	var tagCloud; // table of tags, arrays of item IDs
+	var seriesInfo = [];
+	var shortNames = ["foundation","term-natural-life","rimbaud-cezanne","illuminations","remembrances","birds"];
+	var focusTags = [];
+	var opInterval, focOpInterval;
+
+	$(document).ready(function(){ // runs when the DOM is loaded
+		//console.log("loading");
+		$('#bigwork').hide();
+		$('#bigwork').height($(window).height() - 200); 
+		$('#bigwork').width($(window).width() - 720);
+		
+		getCollectionData();
+
+		$(window).hashchange(function(){
+			updateSelection();
+		});
+
+		$( window ).resize(function() {
+			$('#bigwork').height($(window).height() - 200); 
+			$('#bigwork').width($(window).width() - 720);
+
+			////
+			scaleWindows();
+			////
+		});
+	});
+
+
+function scaleWindows(){
+////////
+	var cloudWidth=260;
+	var containerWidth=$('#wrapper').innerWidth();
+	$("#tags").css("width", cloudWidth+"px");
+	$("#mosaic").css("width",(containerWidth-cloudWidth)+"px");
+////////
+}
+	
+
+	function getCollectionData(){
+
+		//$.getJSON('data/cmag-collections-data.json', function(data) {
+		$.getJSON('data/merged-data.json', function(data) {
+			console.log("loaded collection data");
+			collection = data;
+			var currentSeries = "";
+			var seriesIndex = -1;
+			for (var i = 0; i< data.length; i++) {
+				if (data[i].series[0].name != currentSeries){
+					currentSeries = data[i].series[0].name;
+					seriesIndex++;
+					// an object to store all the series info
+					seriesInfo[seriesIndex] = {"name": currentSeries,"shortname":shortNames[seriesIndex],"totalworks":1 };
+					buildLabel(seriesInfo[seriesIndex]);
+
+				} else {
+					seriesInfo[seriesIndex].totalworks++; // build the total works per series
+				}
+				buildTile(data[i],shortNames[seriesIndex]);
+				collectionMap[data[i].object_number] = data[i]; // store the data in the map
+				// collection[i].tags = tagdata[collection[i].object_number];
+			};
+			buildTagCloud(collection);
+
+			////
+			scaleWindows();
+			////
+
+			if (location.hash != "/") updateSelection();
+		});
+	}
+
+	function buildLabel(s){
+		var $label = $("<span class='mosaicLabel' data-series='" + s.shortname +"'><p class='seriestitle'>"+ s.name +"<br/><span class='seriescount'>0</span></p></span>");
+		$label.on("click",function(){
+			//addTagToSelection("series-" + $(this).attr("data-series"));
+			var seriestag = "series-" + $(this).attr("data-series");
+			if ($(this).hasClass("focus")){
+				removeTagFromSelection(seriestag);
+				$(this).removeClass("focus");
+			} else {
+				addTagToSelection(seriestag);
+				$(this).addClass("focus");
+			}
+		});
+		$('#mosaic').append($label);
+	}
+
+	function updateSeriesLabels(){
+		$('#mosaic span.mosaicLabel').show();
+		seriesInfo.forEach(function(s,i){
+			var seriescount = $('#mosaic div.tile:visible').filter(".series-"+s.shortname).length;
+				//console.log(seriescount);
+			if (seriescount == 0){
+				$('#mosaic span.mosaicLabel').filter("[data-series='"+ s.shortname +"']").hide();
+			} else if (seriescount == s.totalworks){
+				$('#mosaic span.mosaicLabel').filter("[data-series='"+ s.shortname +"']").find('span.seriescount').text(seriescount + " works");
+				
+			} else {
+				$('#mosaic span.mosaicLabel').filter("[data-series='"+ s.shortname +"']").find('span.seriescount').text(seriescount + " / " + s.totalworks + " works");
+			}
+		});
+	}
+
+
+
+	function updateSelection(){
+
+		// read in the URL, get current selection, call updates of tiles and tags
+		if (location.hash.length < 3) {
+			window.location = "#/";
+			showAll();
+			updateSeriesLabels();
+			////
+			//scaleTiles();
+			////
+			return;
+		}
+
+		var hashbits =  location.hash.substring(2).split("/");
+		var tagselector = "";
+		focusTags = [];
+		for (var i=0; i<hashbits.length; i++){
+			if (hashbits[i] == "") continue;
+			//if (hashbits[i].split("-")[0] == "tag"){ // this is a tag selector
+				tagselector = tagselector + '.' + hashbits[i];
+			//}
+			if (hashbits[i].split("-")[0] == "tag") focusTags[i] = hashbits[i].split("-")[1];
+		}
+
+		$('#mosaic div.tile').hide();
+		$('#mosaic div.tile' + tagselector).show(); // show tiles with these tags
+		$("#mosaic div.tile ul li").removeClass("focus");
+
+		var tagSel=$('#tags span.tag');
+		$(tagSel).removeClass("related");
+		$(tagSel).removeClass("unrelated");
+		$(tagSel).removeClass("focus");
+		
+		focusTags.forEach(function(ft){
+			$(".tile ul li:contains(" + ft + ")").addClass("focus"); // show the focused term in the tag ul
+			$(tagSel).filter('[data-tag=' + ft + ']').addClass('focus');
+		});
+
+		var relatedtags = []; 
+		$("#mosaic div.tile:visible").each(function(){ // look at the visible items, 
+			var mytags = $(this).attr('class').split(/\s+/);
+			mytags.forEach(function(t){
+				if (relatedtags.indexOf(t) == -1) relatedtags.push(t);
+			});
+		 })
+
+		relatedtags.forEach(function(r){
+			r = r.replace("tag-","");
+			$(tagSel).filter("[data-tag='" + r + "']").addClass('related');
+		});
+
+		var untags = $(tagSel).not('.focus, .related');
+		$(untags).addClass("unrelated");
+
+		updateSeriesLabels();
+
+		//// order is key
+		$('#chosenTags span.tag').hide();
+		$('#tags span.focus').hide();
+		$('#chosenTags span.focus').show();
+		$('#mosaic div.tile').css("opacity","1.0");
+		////
+
+		////
+		//scaleTiles();
+		////
+	}
+
+	
+	function showAll(){
+		////
+		var chosen = $('#chosenTags span.tag');
+		$(chosen).hide();
+		////
+
+		var tagSel=$('#tags span.tag');
+		
+		////
+		$(tagSel).not(chosen).show();
+		////
+
+		$(tagSel).removeClass("focus");
+		$(tagSel).removeClass('related');
+		$(tagSel).removeClass('unrelated');
+		$('#mosaic .tile ul li').removeClass("focus");
+		$('.tile').show();
+
+	}
+
+
+////
+	function resetTiles(){
+		var vTiles = $('#mosaic .tile, #mosaic .mosaicLabel');
+		$(vTiles).css("height","180px");
+		//$(vTiles).css("width","auto");
+	}
+	function scaleTiles(){
+		var vTiles = $('#mosaic .tile:visible, #mosaic .mosaicLabel:visible');
+		console.log(vTiles.length);
+		var counter=0;
+		var rowWidth=0;
+		var containerWidth=$('#mosaic').innerWidth()-80;
+		var ratio,newHeight;
+
+		$(vTiles).css("height","180px");
+		//$(vTiles).css("width","auto");
+
+		jQuery.each( vTiles, function( e, val ) {
+			
+			var thisW = $(vTiles[e]).outerWidth();
+			var nextW = $(vTiles[e+1]).outerWidth();
+			var labelW=0;
+
+			rowWidth+=thisW;
+
+			if(containerWidth-(rowWidth+nextW)<=0||e==vTiles.length-1){
+
+				// trying to scale the series labels differently to the tiles
+				for(var i=e-counter; i<=e; i++){
+					if($(vTiles[i]).hasClass("mosaicLabel")){
+						// ??? take its width from the row and only increase its height
+						rowWidth-=$(vTiles[i]).outerWidth();
+						containerWidth-=$(vTiles[i]).outerWidth();
+						// give up and just scale it the same
+						//$(vTiles[i]).width($(vTiles[i]).outerWidth()*ratio);
+					}
+				}
+
+
+
+				ratio = (containerWidth/rowWidth);
+				newHeight=($(vTiles[e]).outerHeight()*(ratio));
+
+				for(var i=e-counter; i<=e; i++){
+					$(vTiles[i]).height(newHeight);
+				}
+				counter=0;
+				rowWidth=0;
+				containerWidth=$('#mosaic').innerWidth()-80;
+			}else{
+				counter++;
+			}
+		});
+	}
+////
+
+
+	function buildTile(d,seriesname){
+
+		var imgfield = "small_320";
+		if (window.screen.devicePixelRatio > 1.5) imgfield = "medium";
+		var $tile = $('<div class="tile" data-id="'+d.object_number+'"><img src="'+ d.image[imgfield].url +'"/></div>');
+		
+		var title = ("<span class='title'>"+ d.name +"</span>");
+		var date = ("<span class='date'>("+ d.date_made +")</span>");
+		var medium = ("<span class='medium'><br/>"+ d.medium +"</span>");
+		var $info = $("<div class='workinfo'>" + title + " " + date + " " + medium + " </div>" );
+		$info.hide();
+		$tile.append($info);
+
+		var tags = d.tags.filter(function(t){ return (t.length > 0); });
+		var $tagul = $('<ul class="tiletags"></ul>');
+		 	
+	    for (var j = 0; j < tags.length; j++) {
+	     	$tile.addClass("tag-" + tags[j]);
+	     	$tagul.append("<li>" + tags[j] + "</li>");
+	     };
+
+	     $tile.addClass("series-" + seriesname);
+
+	     $tagul.children().on("click", function(event){  
+
+			if ($(this).hasClass("focus")){
+				removeTagFromSelection("tag-" + $(this).text());
+			} else {
+				addTagToSelection("tag-" + $(this).text());
+			}
+			
+     		event.stopPropagation();
+
+	     });
+	     $tile.append($tagul);
+	     $tagul.hide();
+
+		 $tile.on("mouseenter", function(){
+		 	$(this).children('ul').fadeIn();//show();
+		 	$(this).children('.workinfo').fadeIn();//show();
+		 });
+
+
+		 $tile.on("mouseleave", function(){
+		 	$(this).children('ul').hide();
+		 	$(this).children('.workinfo').hide();
+		 });
+
+		 $tile.on("click", function(){ buildBigWork($(this)) });
+		
+		$('#mosaic').append($tile);
+
+	}
+
+	function buildBigWork($source){
+		if ($('#mosaic').hasClass("skinny") == false){ // not already skinny?
+		 		//$('#wrapper').append('<div id="bigwork"></div>'); // build the bigwork
+		 	$('#mosaic').addClass("skinny"); // make the mosaic skinny
+		 	var voffset = $source.offset().top;
+		 	$('body').scrollTop(voffset - 120); // attempt to keep the selected work in view to maintain context
+		} 
+		// else {
+		// 	$('#bigwork').fadeOut(function(){ $('#bigwork').empty() });
+		// }
+
+		$('#bigwork').empty();
+	 	
+	 	var workdata = collectionMap[$source.attr('data-id')]; // get the work data
+	 	var I = new Image;
+	 	I.src = workdata.image.medium_800.url;
+	 	I.onload = function(){
+		 	
+		 	//var $bigimg = $('<img src="'+ workdata.image.medium_800.url +'"/>');
+		 	// load a bigger image if Retina display or large work box
+		 	if ($('#bigwork').width() > 800 || $('#bigwork').width() > 600 && window.devicePixelRatio > 1.5){
+		 		console.log("going large");
+				$('#bigwork').css("background-image","url('"+ workdata.image.large.url  +"')");
+			} else {
+		 		$('#bigwork').css("background-image","url('"+ workdata.image.medium_800.url  +"')");
+		 	}
+		 	var $biginfo = $source.find('.workinfo').clone();
+		 	$biginfo.find('span.medium').append(", " + workdata.measurements);
+		 	$biginfo.show();
+		 	// if (workdata.image_height > workdata.image_width ){ 
+		 	// 	$bigimg.addClass("portrait");
+		 	// } else {
+		 	// 	$bigimg.addClass("landscape");
+		 	// }
+
+		 	$('#bigwork').on("mouseenter",function(){ $('#closebutton').fadeIn()});
+		 	$('#bigwork').on("mouseleave",function(){ $('#closebutton').fadeOut()});
+
+		 	$closebutton = $('<span id="closebutton">close</span>');
+		 	$closebutton.hide();
+		 	$closebutton.on("click",function(){
+		 		//$('#bigwork').remove();
+				//$('#bigwork').empty();
+
+				$('#bigwork').fadeOut(function(){ 
+					$('#mosaic').removeClass('skinny');
+					$('body').scrollTop(0); });
+		 		// $('#mosaic').animate({width:})
+		 		
+		 	})
+		 	//$('#bigwork').append($bigimg);
+		 	$('#bigwork').append($biginfo);
+		 	$('#bigwork').append($closebutton);
+		 	$('#bigwork').fadeIn();
+	 	}
+
+	}
+
+
+	function buildTagCloud(collection){
+		console.log("building tag cloud");
+		tagCloud = {};
+		collection.forEach(function(e){
+			var tags = e.tags
+			for (var i = 0; i < tags.length; i++) {
+				var t = tags[i];
+				if (t.length == 0) continue;
+				if (tagCloud.hasOwnProperty(t)){ // tagcloud already has this tag, so add the work ID to its list
+					tagCloud[t].push(e.object_number); // add the work ID
+				} else {
+					tagCloud[t] = [e.object_number]; // new array with the work ID
+				}
+			};
+		});
+		displayTagCloud(tagCloud);
+	}
+
+	function addTagToSelection(tagstring){
+		if (window.location.href.indexOf('#') == -1){ // no hash in the current URL, so add one
+			window.location = window.location + '#/';
+		}
+
+		window.location += tagstring + '/'; // add the selected tag
+
+	}
+
+	function removeTagFromSelection(tagstring){
+
+		var hashbits =  location.hash.substring(2).split("/");
+		var newselection = [];
+		for (var i = 0; i < hashbits.length; i++) {
+			if (hashbits[i] != tagstring && hashbits[i] != ""){	
+				newselection.push(hashbits[i]);
+			}
+		};
+		if (newselection.length == 0){ // no focus  = show all
+			window.location = "#/";
+			return;
+		}
+		window.location = '#/' + newselection.join("/") + "/";
+		
+	}
+
+
+	function displayTagCloud(tagdata){
+		var keys = Object.keys(tagdata).sort();
+		keys.forEach(function(k){
+			if (tagdata[k].length < 2) return; // hide singleton tags
+			var newtag = $('<span class="tag draggable" data-tag="'+k+'" style="font-size: '  +  (11 + (tagdata[k].length/3))  + 'px"><p>' + k + '</p></span>');
+			
+			newtag.on("click", function(){
+
+				if ($(this).hasClass("focus")){ // take it out of the URL and thus selection
+					removeTagFromSelection("tag-" + $(this).attr("data-tag"));
+					return;
+				} else if ($(this).hasClass("unrelated")) { return; } // no click on unrelated tags
+				else addTagToSelection("tag-" + $(this).attr("data-tag"));	
+						
+
+			}).on("mouseenter",function(){
+				$('#mosaic div.tile:visible').addClass("unfocus");
+				$('#mosaic div.tile:visible').addClass("fading");
+				var $focus = $('#mosaic div.tag-'+$(this).attr("data-tag")+':visible');
+				$focus.removeClass("unfocus").addClass("focus");
+				$focus.removeClass("fading").addClass("unfading");
+				clearInterval(opInterval);
+				opInterval = setInterval(function(){modOpacity($('.fading'),"-=0.02",opInterval)},5);
+
+				$('.focus').css("opacity","1.0");
+
+			}).on("mouseleave",function(){
+				$('#mosaic div.tile:visible').removeClass("unfocus");
+				$('#mosaic div.tile:visible').removeClass("focus");
+				$('#mosaic div.tile:visible').addClass("unfading");
+				//$('.focus').css("opacity","1.0");
+				clearInterval(opInterval);
+				opInterval = setInterval(function(){modOpacity($('.unfading'),"+=0.02")},5);
+			});
+			$('#tags').append(newtag);
+
+			////
+			var toptag = $('<span class="tag draggable" data-tag="'+k+'" style="font-size: '  +  (11 + (tagdata[k].length/3))  + 'px"><p>' + k + '</p></span>');
+			
+			toptag.on("click", function(){
+				console.log('clicked topTag');
+				removeTagFromSelection("tag-" + $(this).attr("data-tag"));
+
+			});
+			$('#chosenTags').append(toptag);
+			////
+
+		});
+
+		var showall = $('<span id="showall">Show All</span>');
+		showall.on("click",function(){
+			window.location = "#/";
+		})
+		$('#tags').append(showall);
+
+	}
+
+	function modOpacity(target,inc,intVar){
+		$(target).css("opacity",inc);
+		if($(target).css("opacity")<=0.6){
+			$(target).css("opacity","0.6");
+			$(target).removeClass("fading");
+			clearInterval(intVar);
+			//console.log("dropped");
+		}else if($(target).css("opacity")>=1.0){
+			$(target).css("opacity","1.0");
+			$(target).removeClass("unfading");
+			clearInterval(intVar);
+			//console.log("raised");
+		}
+	}
+
+</script>
+
+	<div id="wrapper">
+		<div id ="tags">
+			<div id="chosenTags"></div>
+			<!-- <span class="tag draggable">DRAG ME</span> -->
+		</div>
+     	
+		<div id="mosaic"></div>
+		<div id="bigwork"></div>
+	</div>
+
+    
+</body>
+</html>
