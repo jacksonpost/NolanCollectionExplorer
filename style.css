@@ -1,0 +1,363 @@
+body{
+    /*
+  colours
+  background:#282828;
+  blue link: #0078A8
+  6c6d6e
+  link red:#e9423e;
+  lighter link red: #e85855;
+  dulled red: #a64045;
+  dark background:#242424 
+  333 313131 444 c3c3c3 666 777 787878 919191 989898 999 bbb ccc f1f1f1 f4f4f4
+    */
+    background:#282828;
+    color: #e85855;
+    margin:10px;
+    font-family:"Helvetica Neue","Helvetica",sans-serif;
+  }
+
+  #wrapper{
+    width:100%;
+    position:relative;
+    /*white-space: nowrap;*/
+  }
+  /*#mosaic{
+    position: relative;
+    margin-left:300px;
+    margin-bottom: 80px;
+    display: inline-block;*/
+    /*left:300px;*/
+    /*width:80%;*/
+    /*margin:80px;*/
+/*     -webkit-transition: width 2s;
+     transition: width 2s;*/
+
+  /*}
+*/
+
+/* TESTING */
+  #mosaic{
+    display: inline-block;
+    float:left;
+  }
+ 
+  #tags{
+    display:inline-block;
+    float:left;
+    font-size:15px;
+  }
+  /**/
+
+  #mosaic.skinny{
+    width:180px;
+/*    -webkit-transition: width 2s;
+    transition: width 2s;*/
+  }
+
+  #mosaic.skinny .tile{
+    width:100%;
+    height:auto;
+  }
+  #mosaic.skinny .tile img{
+    width:100%;
+    height:auto;
+    margin-bottom: -3px;
+  }
+
+  #mosaic.skinny .mosaicLabel{
+    width:100%;
+    height:auto;
+    margin:4px 0 4px 0;
+  }
+
+  #bigwork{
+    position:fixed;
+    left:530px;
+    top:10px;
+    margin-right:40px;
+    padding: 40px 40px 100px 40px; 
+    background-color: #222;
+    /*padding-bottom:80px;*/
+    /*width:800px;*/
+    /*text-align: center;*/
+    /*width:1;*/
+    /*width:600px;*/
+    background-position:50% 50%;
+    background-size: contain;
+    background-repeat:no-repeat;
+    background-origin: content-box;
+  }
+
+/*  #bigwork img.landscape{
+    width:100%;
+  }
+
+   #bigwork img.portrait{
+    height:100%;
+  }*/
+
+  #bigwork div.workinfo{
+    color: white;
+    padding: 10px;
+    font-size: 120%;
+    font-weight: lighter;
+    width:100%;
+    text-align: center;
+    position:absolute;
+    bottom:15px;
+    left:0px;
+  }
+
+  #bigwork #closebutton{
+    position: absolute;
+    font-weight: lighter;
+    top:0px;
+    right:0px;
+    padding:5px;
+    text-transform: uppercase;
+    color:white;
+
+  }
+
+  #bigwork #closebutton:hover{
+    background-color: #a64045;
+    cursor: pointer;
+  }
+
+
+  /*#tags{
+  position:fixed;
+  width:260px;
+  font-size:15px;
+  }*/
+
+  #chosenTags{
+    width:240px;
+    margin:0 10px 5px 10px;
+    border-bottom: 2px dashed white;
+  }
+
+  .tag{
+    display: inline-block;
+    /*color:  #a64045;*/
+    color: white;
+    background: #444;
+    /*background: #242424;*/
+    margin: 3px;
+   /*margin:0.2em;*/
+   /*padding:0.1em;*/
+    padding: 5px;
+    border: 1px solid transparent;
+    text-transform: uppercase;
+  font-weight: 500;
+/*     -webkit-transition: border-color 0.5s;
+    -moz-transition: border-color 0.5s;
+    transition: border-color 0.5s; */
+  }
+
+  .tag:hover{
+    color: #e85855;
+    cursor: pointer;
+  }
+
+  .tag.unrelated:hover{
+    cursor:default;
+  }
+
+   .tag.focus{
+    background: #a64045;
+   }
+
+   .tag.related{
+    border: 1px solid #a64045;
+   }
+
+   .tag.unrelated{
+    color:#666;
+   }
+
+  .tile{
+    float:left;
+    display:inline-block;
+    height:180px;
+    /*width:60px;*/
+    /*overflow:hidden;*/
+    border:4px solid transparent;
+    /*opacity:0.8;*/
+    position: relative;
+    opacity:1.0;
+/*    transition: opacity 0.2s;
+    -webkit-transition: opacity 0.2s;*/
+    -webkit-font-smoothing: antialiased;
+
+  }
+
+  .tile ul{
+    position:absolute;
+    right: -15px;
+  bottom: -10px;
+  list-style: none;
+  color: white;
+  font-size: 11px;
+    z-index: 99; 
+    opacity:1.0;  
+    
+
+  }
+
+  .tile ul li{
+     background-color: #444;
+     margin-bottom: 4px;
+     padding:3px 5px 3px 5px;
+/*     border-top-right-radius: 5px;
+     border-bottom-right-radius: 5px;*/
+  }
+
+  .tile ul li:hover{
+    color:#e85855;
+    cursor:pointer;
+  }
+
+  .tile ul li.focus{
+    background-color: #a64045;
+  }
+
+  .tile.selected{
+    border-color:#ff0;
+  }
+
+  .tile.unfocus{
+    /*opacity: 0.5;*/
+    /*transition: opacity 0.5s;
+    -webkit-transition: opacity 0.5s;*/
+  }
+
+  .tile:hover{
+    border:4px solid white;
+    opacity:1.0;
+    /*transition: opacity 0.5s;*/
+    /*-webkit-transition: opacity 0.5s;*/
+  }
+
+
+  .tile div.workinfo{
+    position:absolute;
+    top:100%;
+    /*width:100%;*/
+    background: white;
+    padding:8px;
+    color: black;
+    font-size: 11px;
+    z-index: 99;
+    margin: 0 -4px;
+
+  }
+
+  .workinfo .title{
+    font-style: italic;
+    color: #a64045;
+  }
+
+  .workinfo .medium{
+    font-size: 80%;
+  }
+
+  .tile img{
+    height:100%;
+  }
+
+  /*.mosaicLabel,*/ #showall{
+    width:100%;
+    display: block;
+    float:left;
+    clear:both;
+    /*background: #444;*/
+    padding: 8px;
+    color: #e85855;
+    font-size: 1.0em;
+    -webkit-font-smoothing: antialiased;
+    /*font-weight: bold;*/
+    letter-spacing: .2em;
+    line-height: 1.3;
+    text-transform: uppercase;
+   
+  }
+
+  .mosaicLabel{
+    float:left;
+      display:inline-block;
+      height:180px;
+      width:auto;
+      border:4px solid transparent;
+      /*margin:4px 4px;*/
+      /*background: #444;*/
+      overflow:hidden;
+      /*////
+      clear:left;
+      ////*/
+      padding:0;
+      color: white;
+      /*word-wrap: break-word;*/
+      -webkit-font-smoothing: antialiased;
+  }
+
+  .mosaicLabel p{
+    text-transform: uppercase;
+    font-size: 90%;
+    margin: 8px 8px 4px 8px;
+    line-height: 150%;
+    /**/
+    background: #a64045;
+    padding:0.4em;
+    /**/
+
+  }
+
+  .mosaicLabel span.seriescount{
+    /*color: #a64045;*/
+    font-size: 90%;
+  }
+
+  .mosaicLabel:hover, .mosaicLabel.focus{
+    cursor:pointer;
+    color: #fff;
+    /*background: #a64045;*/
+    border-color:#fff;
+  }
+
+
+/*
+Below is for testing, contradicts some of the above - resolve later
+*/
+  .seriesTitle{
+      background: #a64045;
+      color:white;
+      width:50px;
+  }
+  #showall{
+    margin-top: 20px;
+  }
+  #showall:hover{
+    background: #444;
+    cursor:pointer;
+  }
+  .tileLabel{
+    margin:0;padding:0;
+    position: absolute;
+    bottom:0;
+    opacity:0.8;
+    background: #242424;
+    width:100%;
+    overflow:hidden;
+  }
+
+  #dropBox{
+    position:fixed;
+    top:600px;
+    width:260px;
+    height:160px;
+    background: #444;
+    }
+    .tag p{
+      border:0;margin:0;padding:0;
+    }
